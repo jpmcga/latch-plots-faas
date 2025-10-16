@@ -662,6 +662,26 @@ class AgentHarness:
                 traceback.print_exc()
                 return f"Error submitting response: {e!s}"
 
+        async def h5_show_only_obs_category(args: dict) -> str:
+            widget_key = args.get("widget_key")
+            obs_key = args.get("obs_key")
+            category = args.get("category")
+            
+            if AGENT_DEBUG:
+                print(f"[tool] h5_show_only_obs_category widget_key={widget_key} obs_key={obs_key} category={category}")
+            
+            params = {
+                "widget_key": widget_key,
+                "obs_key": obs_key,
+                "category": category
+            }
+            
+            result = await self.atomic_operation("h5_show_only_obs_category", params)
+            if result.get("status") == "success":
+                return f"Filtered h5 widget to show only {obs_key}={category}"
+            
+            return f"Failed to filter h5 widget: {result.get('error', 'Unknown error')}"
+
         self.tools.append({
             "name": "create_cell",
             "description": "Create a new code cell at specified position. The cell will automatically run after creation.",
@@ -804,6 +824,30 @@ class AgentHarness:
                     },
                 })
         self.tool_map["set_widget"] = set_widget
+
+        self.tools.append({
+            "name": "h5_show_only_obs_category",
+            "description": "Filter an h5/AnnData widget to show only observations matching a specific category.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "widget_key": {
+                        "type": "string",
+                        "description": "Full widget key including tf_id and widget_id in the format <tf_id>/<widget_id>"
+                    },
+                    "obs_key": {
+                        "type": "string",
+                        "description": "The observation key to filter on"
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "The category value to show"
+                    },
+                },
+                "required": ["widget_key", "obs_key", "category"],
+            },
+        })
+        self.tool_map["h5_show_only_obs_category"] = h5_show_only_obs_category
 
     async def run_agent_loop(self) -> None:
         assert self.client is not None, "Client not initialized"
