@@ -251,11 +251,36 @@ groupings_file = LatchFile(remote_path)
 
 ## Data Assumptions
 
-AtlasXOmics datasets follow a standard output folder schema across all projects.
-Assume this structure exists without asking the user to confirm.
+AtlasXOmics datasets have the following data conventions. Assume this structure exists without asking the user to confirm.
 
-### Example Folder Layout
-root/
+### Raw Data
+Raw data consists of fragment files (fragments.tsv.gz) and 'spatial/' folders which contain images, image metadata, and barcode-image mappings stored as csv files. Every experiment (designated with the unique 'Run ID' Dxxxxx where x is a digit), is associated with distinct raw data. Fragment files and spatial folders are stored on different files paths in Latch Data.
+
+In the default AtlasXomics Workspace (13502), fragment files are stored in the path `root/chromap_outs/[Run_ID]/chromap_output/fragments.tsv.gz`.  Spatial folders are stored in the path `root/Images_spatial/[Run_ID]/spatial`. 
+
+In collaborator Workspaces (not 13502), fragment files and spatial folders are stored together in the parent directory corresponding to Run ID.  Frament files are store in the path `root/Raw_Data/[Run_ID]/fragments.tsv.gz`, spatial folders at `root/Raw_Data/[Run_ID]]/spatial`.
+
+### Workflow Outputs
+
+#### Clustering Workflow (optimize_snap)
+The clustering workflow (optimize_snap, wf.__init__.opt_workflow) stores outputs on the path `root/snap_opts/[project name]/` where "project name" is designated by the user in the Workflow input parameters. The output directory has the following structure:
+[project name]/
+├── figures/
+├── medians.csv
+├── set1_ts5000-vf500000-cr1-0-vi1-nc30
+├── set2_ts5000-vf500000-cr1-0-vi1-nc40
+
+Each folder with the prefix 'setN' corresponds to a combination of input clustering parameters.  Each contains a 'combined.h5ad' file which stores the AnnData object generated with the specified clustering parameters, with .X as a tile matrix.
+
+The figures/ directory contains plots saved as .pdf files for QC and to guide selection of cluster parameters for downstream analysis. The medians.csv contains QC metrics for the project.
+
+#### atx_snap and create ArchRProject Workflows
+
+These two Workflows create files to be analyzed in Plots.  A Workflow takes as input one or multiple Run IDs and corresponding raw data.  It creates the outputs detailed below.  The `combined_sm_ge.h5ad` and `combined_sm_motifs.h5ad` files are AnnData objects with .X as gene accessibility data and motif enrichment data, respectively.  Each object contains data for all Run IDs specified in the inputs. Runs are designated by the column 'sample' in AnnData .obs.
+
+In the default AtlasXomics Workspace (13502), results are stored in `root/snap_outs/[project name]` where project name is specified in the Execution inputs.  In customer Workspaces, data is stored in `root/Processed_Data/[project name]`.
+
+project_name/
 ├── cluster_coverages/
 ├── condition_coverages/
 ├── figures/
@@ -280,19 +305,10 @@ root/
 ├── D02310_NG07345_m_converted.h5ad
 ├── D02310_NG07345_SeuratObjMotif.rds
 ├── D02310_NG07345_SeuratObj.rds
-│
-├── enrichMotifs_clusters.rds
-├── enrichMotifs_condition_1.rds
-├── enrichMotifs_sample.rds
-│
-├── markersGS_clusters.rds
-├── markersGS_condition_1.rds
-├── markersGS_sample.rds
-
 
 **Important files to pay attention to**
-- `combined_sm_ge.h5ad`: Stores gene activity score for every spot
-- `combined_sm_motifs.h5ad`: Stores motif enrichment score for every spot
+- `combined_sm_ge.h5ad`: Stores gene activity score for every spot for all Run IDs
+- `combined_sm_motifs.h5ad`: Stores motif enrichment score for every spot for all Run IDs
 - Both files follow the standard AnnData structure with `obs`, `uns`, `obsm`, and `obsp` components as detailed below. 
 - Folder ending with `_ArchRProject`: An `ArchR` project 
 
